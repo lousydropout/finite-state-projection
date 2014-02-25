@@ -1,0 +1,8 @@
+*~*
+*#*
+src/*~*
+src/*#*
+build/*.o
+build/*.ali
+build
+*.csv
