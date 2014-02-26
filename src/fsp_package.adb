@@ -1,4 +1,3 @@
-
 package body FSP_Package is
    
    function "+" (Left, Right : in Int_Vector) return Int_Vector is
@@ -45,7 +44,6 @@ package body FSP_Package is
       Result : Reaction;
    begin
       Result.Reactant    := Start;
-      Result.Product     := Finish;
       Result.Coefficient := C;
       Result.Change      := Finish - Start;
       return Result;
@@ -86,22 +84,9 @@ package body FSP_Package is
    
    
    function Propensity (Rxn : in Reaction;
-   			I   : in Positive) return Real is
-      X      : Species := Inv_Number (I);
-      Result : Real    := Rxn.Coefficient (X);
-   begin
-      for J in Rxn.Reactant'Range loop
-      	 if Rxn.Reactant (J) > 0 then
-      	    Result := Result * (Real (X (J)) ** Rxn.Reactant (J));
-      	 end if;
-      end loop;
-      return Result;
-   end Propensity;
-   
-   
-   function Propensity (Rxn : in Reaction;
-   			X   : in Species) return Real is
-      Result : Real := Rxn.Coefficient (X);
+   			X   : in Species;
+			T   : in Real) return Real is
+      Result : Real := Rxn.Coefficient (X, T);
    begin
       for J in Rxn.Reactant'Range loop
       	 if Rxn.Reactant (J) > 0 then
@@ -123,7 +108,8 @@ package body FSP_Package is
    end Valid;
    
    
-   function Propensity_Matrix (Rxn_List : in Reaction_List) return Real_Matrix is
+   function Propensity_Matrix (Rxn_List	: in Reaction_List;
+			       Time	: in Real) return Real_Matrix is
       Result : Real_Matrix (1 .. N_Max, 1 .. N_Max) := (others => (others => 0.0));
       X, Y : Species;
       A : Real;
@@ -133,7 +119,7 @@ package body FSP_Package is
 	 X := Inv_Number (I);
 	 for R of Rxn_List loop
 	    if Valid (X - R.Reactant) and then Valid (X + R.Change) then
-	       A := Propensity (R, X);
+	       A := Propensity (R, X, Time);
 	       Result (I, I) := Result (I, I) - A;
 	       
 	       Y := (X + R.Change);
@@ -148,5 +134,78 @@ package body FSP_Package is
    end Propensity_Matrix;
    
    
-end FSP_Package;
    
+   -- Define Integrators
+   function Forward_Euler (P	: in Real_Vector;
+			   T	: in Real;
+			   Dt	: in Real;
+			   Rxns	: in Reaction_List) return Real_Vector is
+      Mat    : Real_Matrix := Propensity_Matrix (Rxns, T);
+      Result : Real_Vector := P + Dt * (Mat * P);
+   begin
+      return Result;
+   end Forward_Euler;
+   
+   
+   function Reverse_Euler (P	: in Real_Vector;
+			   T	: in Real;
+			   Dt	: in Real;
+			   Rxns	: in Reaction_List) return Real_Vector is
+      Mat : Real_Matrix 
+	:= Unit_Matrix (P'Length) - Dt * Propensity_Matrix (Rxns, T);
+   begin
+      return Solve (Mat, P);
+   end Reverse_Euler;
+   
+   
+   
+   function Integrate (X       : in Real_Vector;
+		       T       : in Real;
+		       T_Final : in Real;
+		       Rxns    : in Reaction_List;
+		       By      : in Integration_Method := Forward_Euler;
+		       Dt      : in Real	       := 0.1)
+		      return Real_Vector is
+      Time     : Real        := T;
+      Δt       : Real        := Dt;
+      Dt1, Dt2 : Real        := Dt;
+      Error    : Real        := 100.0;
+      Result   : Real_Vector := X;
+   begin
+      
+      case By is
+	 when Forward_Euler =>
+	    while Time < T_Final loop
+	       Δt     := Real'Min (Δt, T_Final - Time);
+	       Result := Forward_Euler (Result, Time, Δt, Rxns);
+	       Time   := Time + Δt;
+	    end loop;
+	    
+	 when Reverse_Euler =>
+	    while Time < T_Final loop
+	       Δt     := Real'Min (Δt, T_Final - Time);
+	       Result := Reverse_Euler (Result, Time, Δt, Rxns);
+	       Time   := Time + Δt;
+	    end loop;
+	    
+	 when FE_Adaptive =>
+	    while Time < T_Final loop
+	       Δt     := Real'Min (Δt, T_Final - Time);
+	       Result := Forward_Euler (Result, Time, Δt, Rxns);
+	       Time   := Time + Δt;
+	    end loop;
+	    
+      end case;
+      return Result;
+   end Integrate;
+   
+   
+   function Norm (X : in Real_Vector) return Real is
+      Result : Real := 0.0;
+   begin
+      for Y of X loop
+	 Result := Real'Max (Result, abs (Y));
+      end loop;
+      return Result;
+   end Norm;
+end FSP_Package;
