@@ -10,14 +10,13 @@ generic
    
 package FSP_Package is
    
-   type Integration_Method is 
-     (Forward_Euler, Reverse_Euler, FE_Adaptive);
+   type Integration_Method is (Forward_Euler, Reverse_Euler, FE_Adaptive);
+     
    subtype Species is Int_Vector (1 .. N);
    type Reaction is private;
    type Reaction_List is array (1 .. N_Rxn) of Reaction;
    type Func is access function (X : in Species;
 				 T : in Real) return Real;
-   
    
    function Array_Size return Positive;
    function "+" (Left, Right : in Int_Vector) return Int_Vector;
@@ -29,7 +28,7 @@ package FSP_Package is
 			C	      : in Func) return Reaction;
    
    function Number (X : in Species) return Positive;
-   -- Define Integrators
+   
    function Integrate (X       : in Real_Vector;
 		       T       : in Real;
 		       T_Final : in Real;
@@ -39,6 +38,9 @@ package FSP_Package is
      return Real_Vector;
    
 private
+   
+   function C_New (C_Current, C_Previous : in Real) return Real;
+   
    function Norm (X : in Real_Vector) return Real;
    function Calc_Lengths return Species;
    function Inv_Number (I : in Positive) return Species;
@@ -57,7 +59,6 @@ private
 			   T	: in Real;
 			   Dt	: in Real;
 			   Rxns	: in Reaction_List) return Real_Vector;
-
 
    type Reaction is
       record

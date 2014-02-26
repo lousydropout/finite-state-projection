@@ -110,26 +110,27 @@ package body FSP_Package is
    
    function Propensity_Matrix (Rxn_List	: in Reaction_List;
 			       Time	: in Real) return Real_Matrix is
-      Result : Real_Matrix (1 .. N_Max, 1 .. N_Max) := (others => (others => 0.0));
+      Result : Real_Matrix (1 .. N_Max, 1 .. N_Max) 
+	:= (others => (others => 0.0));
       X, Y : Species;
       A : Real;
-      K : Positive;
+      I : Positive;
    begin
-      for I in 1 .. N_Max loop
-	 X := Inv_Number (I);
+      for J in 1 .. N_Max loop
+	 X := Inv_Number (J);
+	 
 	 for R of Rxn_List loop
-	    if Valid (X - R.Reactant) and then Valid (X + R.Change) then
+	    Y := (X + R.Change);
+	    
+	    if Valid (X - R.Reactant) and then Valid (Y) then
+	       I := Number (Y);
 	       A := Propensity (R, X, Time);
-	       Result (I, I) := Result (I, I) - A;
-	       
-	       Y := (X + R.Change);
-	       K := Number (Y);
-	       if (K < N_Max) and then Valid (Y) then 
-		  Result (K, I) := Result (K, I) + A;
-	       end if;
+	       Result (J, J) := Result (J, J) - A;
+	       if (I <= N_Max) then Result (I, J) := Result (I, J) + A; end if;
 	    end if;
 	 end loop;
       end loop;
+      
       return Result;
    end Propensity_Matrix;
    
@@ -169,8 +170,14 @@ package body FSP_Package is
       Time     : Real        := T;
       Δt       : Real        := Dt;
       Dt1, Dt2 : Real        := Dt;
-      Error    : Real        := 100.0;
+      E1, E2   : Real        := 1.0;
+      C1, C2   : Real        := 1.0;
+      C, Error : Real        := 100.0;
       Result   : Real_Vector := X;
+      Y1, Y2   : Real_Vector := X;
+      Iter     : Positive    := 1;
+      
+      Epsilon  : Real  := 1.0e-6;
    begin
       
       case By is
@@ -190,9 +197,16 @@ package body FSP_Package is
 	    
 	 when FE_Adaptive =>
 	    while Time < T_Final loop
-	       Δt     := Real'Min (Δt, T_Final - Time);
-	       Result := Forward_Euler (Result, Time, Δt, Rxns);
-	       Time   := Time + Δt;
+	       Dt1 := Real'Min (Dt1, T_Final - Time);
+	       Dt2 := Dt1 / 2.0;
+	       
+	       Y1 := Forward_Euler (Y1, Time, Dt1, Rxns);
+	       Y2 := Forward_Euler (Y2, Time, Dt2, Rxns);
+	       Y2 := Forward_Euler (Y2, Time, Dt2, Rxns);
+	       
+	       -- Incomplete
+	       Y1   := Y2;
+	       Time := Time + Dt1;
 	    end loop;
 	    
       end case;
@@ -208,4 +222,10 @@ package body FSP_Package is
       end loop;
       return Result;
    end Norm;
+   
+   function C_New (C_Current, C_Previous : in Real) return Real is
+   begin
+      return C_Current ** 2 / C_Previous;
+   end C_New;
+   
 end FSP_Package;

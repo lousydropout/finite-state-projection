@@ -74,14 +74,10 @@ procedure Fsp is
    
    
    -- Various Variables
-   X    : Real_Vector (1 .. Array_Size) := (others => 0.0); -- Initial Value
+   Prob : Real_Vector (1 .. Array_Size) := (others => 0.0); -- Initial Value
    Rxns : Reaction_List; -- Saves information on the reactions
-   
-   Sum  : Real := 0.0; -- For summing up probabilities at the end
-   Time : Real := 0.0; 
-   Dt   : Real := 0.2;
-   
-   F    : File_Type; -- Output file
+   Sum  : Real := 0.0;   -- For summing up probabilities at the end
+   F    : File_Type;     -- Output file
    
 begin
    -- Create File
@@ -100,26 +96,30 @@ begin
    Rxns (10) := Create_Rxn (PapI, Zero,      CD'Access);
    
    -- Initial Value
-   X (Number (G1 + 5 * PapI)) := 1.0;
+   Prob (Number (G1 + 5 * PapI)) := 1.0;
    
    -- Integrate
-   X := Integrate (X, 0.0, 10.0, Rxns, Reverse_Euler);
+   Prob := Integrate (Prob, 0.0, 10.0, Rxns, Reverse_Euler);
    
    -- Output Results To File
-   Put_Line (F, "PapI, g1, g2, g3, g4");
+   Set_Output (F);
+   Put_Line ("PapI, g1, g2, g3, g4");
    for I in Min (5) .. Max (5) loop
-      Put (F, I, 0); Put (F, ", ");
-      Put (F, X (Number (G1 + I * PapI)), Exp => 3, Aft => 4); Put (F, ", ");
-      Put (F, X (Number (G2 + I * PapI)), Exp => 3, Aft => 4); Put (F, ", ");
-      Put (F, X (Number (G3 + I * PapI)), Exp => 3, Aft => 4); Put (F, ", ");
-      Put (F, X (Number (G4 + I * PapI)), Exp => 3, Aft => 4); New_Line (F);
+      Put (I, 0); Put (", ");
+      Put (Prob (Number (G1 + I * PapI)), Exp => 3, Aft => 4); Put (", ");
+      Put (Prob (Number (G2 + I * PapI)), Exp => 3, Aft => 4); Put (", ");
+      Put (Prob (Number (G3 + I * PapI)), Exp => 3, Aft => 4); Put (", ");
+      Put (Prob (Number (G4 + I * PapI)), Exp => 3, Aft => 4); New_Line;
    end loop;
    
    
    -- Output Probability Sum to Monitor
-   for I of X loop
-      Sum := Sum + I;
+   Set_Output (Standard_Output);
+   for P of Prob loop
+      Sum := Sum + P;
    end loop;
-   Put (Sum); New_Line;
+   Put ("Probability Sum = ");
+   Put (Sum * 100.0, Exp => 0, Aft => 3); 
+   Put_Line (" %");
    
 end Fsp;
