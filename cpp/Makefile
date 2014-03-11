@@ -1,13 +1,14 @@
 CC=g++-4.8
 EIGEN=/home/lousydropout/Software/eigen/
-CFLAGS=-Wall -Wextra -O3 -std=c++0x
-all: fsp
+CFLAGS=-Wall -O3 -std=c++0x
+all: feedback fsp
 
-# fsp_package.o: fsp_package.h
-# 	$(CC) $(CFLAGS) -I $(EIGEN) -c fsp_package.cpp
+feedback: feedback.cpp
+	$(CC) $(CFLAGS) -I $(EIGEN) feedback.cpp -o feedback
+
 fsp: fsp.cpp
 	$(CC) $(CFLAGS) -I $(EIGEN) fsp.cpp -o fsp
 
 clean:
-	rm -f *~ fsp *.o
+	rm -f *~ fsp feedback *.o
 

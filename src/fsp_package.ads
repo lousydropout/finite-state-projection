@@ -29,6 +29,7 @@ package FSP_Package is
 			C	      : in Func) return Reaction;
    
    function Number (X : in Species) return Positive;
+   function Inv_Number (I : in Positive) return Species;
    -- Define Integrators
    function Integrate (X       : in Real_Vector;
 		       T       : in Real;
@@ -41,7 +42,6 @@ package FSP_Package is
 private
    function Norm (X : in Real_Vector) return Real;
    function Calc_Lengths return Species;
-   function Inv_Number (I : in Positive) return Species;
    function Propensity (Rxn : in Reaction;
 			X   : in Species;
 			T   : in Real) return Real;
@@ -56,8 +56,11 @@ private
    function Reverse_Euler (P	: in Real_Vector;
 			   T	: in Real;
 			   Dt	: in Real;
-			   Rxns	: in Reaction_List) return Real_Vector;
+			   Rxns	: in Reaction_List) return Real_Vector
+     with Pre => P'Length = N_Max;
 
+   function RE (P   : in Real_Vector;
+		Mat : in Real_Matrix) return Real_Vector;
 
    type Reaction is
       record

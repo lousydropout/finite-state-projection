@@ -13,8 +13,8 @@ Project Exponential is
 	    "-gnateF",                  -- Check overflow on predefined Float types
 	    "-gnatf",                   -- verbose error messages
 	    "-gnatm5",                  -- limits number of detected errors to 5
-	    "-gnatn2",                  -- enable inline across units
-	    "-gnatN",                   -- allow auto inline across units
+	    --  "-gnatn2",                  -- enable inline across units
+	    --  "-gnatN",                   -- allow auto inline across units
 	    "-O3",
 	    "-gnatW8",                  -- allow wide characters
             "-s",                       -- recompile if compiler switches have changed
@@ -28,5 +28,5 @@ Project Exponential is
      for VCS_Kind use "Git";
   end IDE;
   
-  for Main use ("fsp.adb");
+  for Main use ("fsp.adb", "feedback.adb");
 end Exponential;

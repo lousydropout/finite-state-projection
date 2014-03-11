@@ -1,3 +1,4 @@
+with Ada.Text_IO; use Ada.Text_IO;
 package body FSP_Package is
    
    function "+" (Left, Right : in Int_Vector) return Int_Vector is
@@ -94,6 +95,10 @@ package body FSP_Package is
       	 end if;
       end loop;
       return Result;
+   exception
+      when Storage_Error =>
+	 Put_Line ("Raised Storage_Error from function Propensity");
+	 raise Storage_Error;
    end Propensity;
    
    
@@ -131,6 +136,10 @@ package body FSP_Package is
 	 end loop;
       end loop;
       return Result;
+   exception
+      when Storage_Error =>
+	 Put_Line ("Raised Storage_Error from function Propensity_Matrix");
+	 raise Storage_Error;
    end Propensity_Matrix;
    
    
@@ -151,11 +160,29 @@ package body FSP_Package is
 			   T	: in Real;
 			   Dt	: in Real;
 			   Rxns	: in Reaction_List) return Real_Vector is
-      Mat : Real_Matrix 
-	:= Unit_Matrix (P'Length) - Dt * Propensity_Matrix (Rxns, T);
+      Mat : Real_Matrix (1 .. N_Max, 1 .. N_Max);
+      
    begin
+      
+      Put_Line ("Reverse_Euler");
+      Mat := Unit_Matrix (P'Length) - Dt * Propensity_Matrix (Rxns, T);
+      pragma Assert (Determinant (Mat) > 1.0e-6);
+      Put_Line ("Exiting Reverse_Euler");
       return Solve (Mat, P);
+   exception
+      when Constraint_Error =>
+	 Put_Line ("Raised Constraint_Error from function Reverse Euler");
+	 raise Constraint_Error;
+      when Storage_Error =>
+	 Put_Line ("Raised Storage_Error from function Reverse Euler");
+	 raise Storage_Error;
    end Reverse_Euler;
+   
+   function RE (P   : in Real_Vector;
+		Mat : in Real_Matrix) return Real_Vector is
+   begin
+      return Mat * P;
+   end RE;
    
    
    
@@ -171,23 +198,37 @@ package body FSP_Package is
       Dt1, Dt2 : Real        := Dt;
       Error    : Real        := 100.0;
       Result   : Real_Vector := X;
+      Iter     : Positive    := 1;
+      Mat      : Real_Matrix (1 .. N_Max, 1 .. N_Max);
    begin
       
       case By is
 	 when Forward_Euler =>
 	    while Time < T_Final loop
+	       Put_Line ("Iteration " & Iter'Img);
+	       Iter   := Iter + 1;
 	       Δt     := Real'Min (Δt, T_Final - Time);
 	       Result := Forward_Euler (Result, Time, Δt, Rxns);
 	       Time   := Time + Δt;
 	    end loop;
 	    
 	 when Reverse_Euler =>
+	    Put_Line ("Integration Start . . .");
+	    
+	    Mat := Unit_Matrix (N_Max) - Dt * Propensity_Matrix (Rxns, T);
+	    Mat := Inverse (Mat);
 	    while Time < T_Final loop
-	       Δt     := Real'Min (Δt, T_Final - Time);
-	       Result := Reverse_Euler (Result, Time, Δt, Rxns);
+	       if T_Final - Time > 0.0 then
+		  Δt  := T_Final - Time;
+		  Mat := Unit_Matrix (N_Max) - 
+		    Dt * Propensity_Matrix (Rxns, T);
+		  Mat := Inverse (Mat);
+	       end if;
+	       Result := Mat * Result;
 	       Time   := Time + Δt;
 	    end loop;
 	    
+	    Put_Line ("Integration End ");
 	 when FE_Adaptive =>
 	    while Time < T_Final loop
 	       Δt     := Real'Min (Δt, T_Final - Time);
@@ -197,6 +238,15 @@ package body FSP_Package is
 	    
       end case;
       return Result;
+   exception
+      when Constraint_Error =>
+	 Put_Line ("Raised Constraint_Error from procedure Integrate");
+	 Put ("Det (Mat) = ");
+	 Put_Line (Real'Image (Determinant (Mat)));
+	 raise Constraint_Error;
+      when Storage_Error =>
+	 Put_Line ("Raised Storage_Error from procedure Integrate");
+	 raise Storage_Error;
    end Integrate;
    
    

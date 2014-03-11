@@ -138,6 +138,14 @@ VectorXd Forward_Euler (VectorXd P,
   res = P + Dt * (Mat * P);
   return res;
 }
+
+VectorXd Reverse_Euler (VectorXd P,
+			MatrixXd Mat)
+{
+  // MatrixXd Mat2 = Mat;
+  // VectorXd res = Mat2.fullPivLu ().solve (P);
+  return Mat * P;
+}
 /**************************************************************/
 
 
@@ -231,10 +239,23 @@ int main ()
   
   // Integrate
   double time = 0.0;
-  const double Dt = 0.001;
-  while (time < 10.0)
+  double Dt = 0.001;
+  double t_final = 10.0;
+  MatrixXd Mat;
+  Mat = MatrixXd::Identity (N_max, N_max)
+    - Dt * Propensity_Matrix (Rxns, N_Rxns, Min, Max, N);
+  Mat = Mat.inverse ();
+  while (time < t_final)
     {
-      X    = Forward_Euler (X, Dt, Rxns, N_Rxns, Min, Max, N);
+      if (Dt > t_final - time)
+	{
+	  Dt   = t_final - time;
+  	  Mat = MatrixXd::Identity (N_max, N_max)
+  	    - Dt * Propensity_Matrix (Rxns, N_Rxns, Min, Max, N);
+  	  Mat = Mat.inverse ();
+	  // X    = Forward_Euler (X, Dt, Rxns, N_Rxns, Min, Max, N);
+	}
+      X    = Reverse_Euler (X, Mat);
       time = time +Dt;
     }
 

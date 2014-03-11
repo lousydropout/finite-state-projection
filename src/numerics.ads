@@ -1,5 +1,6 @@
 package Numerics is
-   type Real is new Long_Float range Long_Float'First .. Long_Float'Last;
+   type Real is new Float range Float'First .. Float'Last;
+   --  type Real is new Long_Float range Long_Float'First .. Long_Float'Last;
    type Int_Vector is array (Positive range <>) of Integer;
    type Natural_Vector is array (Positive range <>) of Natural;
 
