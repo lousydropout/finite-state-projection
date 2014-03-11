@@ -6,7 +6,7 @@ using namespace Eigen;
 using namespace std;
 
 
-
+const double epsilon = 1.0e-6;
 /** Not Problem Specific.  For Problem Statement Scroll further down.
                   Various Definitions, Functions, and Procedures  **/
 typedef struct
@@ -146,6 +146,107 @@ VectorXd Reverse_Euler (VectorXd P,
   // VectorXd res = Mat2.fullPivLu ().solve (P);
   return Mat * P;
 }
+
+
+VectorXd Adaptive_FE (VectorXd X,
+		      double time,
+		      double t_final,
+		      Reaction Rxn[],
+		      const int N_Rxn,
+		      const int Min[],
+		      const int Max[],
+		      const int N)
+{
+  MatrixXd Mat = Propensity_Matrix (Rxn, N_Rxn, Min, Max, N);
+  VectorXd X1, X2;
+  double Dt1 = 0.001, Dt2 = 0.5 * Dt1;
+  double error;
+  while (time < t_final)
+    {
+      if (Dt1 > t_final - time)
+  	{
+  	  Dt1 = t_final - time;
+	  Dt2 = 0.5 * Dt1;
+  	}
+      X1 = X  + Dt1 * (Mat * X);
+      X2 = X  + Dt2 * (Mat * X);
+      X2 = X2 + Dt2 * (Mat * X2);
+
+      error = (X2 - X1).norm ();
+      if (error < epsilon)
+	{
+	  X = X2;
+	  time = time + Dt1;
+	  // Update time step based
+	  Dt1 = Dt1 * sqrt (epsilon / error);
+	  Dt2 = 0.5 * Dt1;
+	  cout << "time = " << time << "  dt = " << Dt1 << endl;
+	}
+      else
+	{
+	  Dt1 = 0.2 * Dt1;
+	  Dt2 = 0.2 * Dt2;
+	}
+    }
+  return X;
+}
+
+VectorXd Adaptive_BE (VectorXd X,
+		      double time,
+		      double t_final,
+		      Reaction Rxn[],
+		      const int N_Rxn,
+		      const int Min[],
+		      const int Max[],
+		      const int N)
+{
+  const int N_max = Array_Size (Min, Max, N);
+  const MatrixXd Id  = MatrixXd::Identity (N_max, N_max);
+  const MatrixXd Mat = Propensity_Matrix (Rxn, N_Rxn, Min, Max, N);
+  
+  MatrixXd Mat1, Mat2;
+  VectorXd X1, X2;
+  double Dt1 = 1.0e-5;
+  double Dt2 = 0.5 * Dt1;
+  double error;
+
+  Mat1 = Id - Dt1 * Mat;
+  Mat2 = Id - Dt2 * Mat;
+  
+  while (time < t_final)
+    {
+      if (Dt1 > t_final - time)
+  	{
+  	  Dt1 = t_final - time;
+	  Dt2 = 0.5 * Dt1;
+	  cout << "     Reducing time step to " << Dt1 << endl;
+	  Mat1 = Id - Dt1 * Mat;
+	  Mat2 = Id - Dt2 * Mat;
+  	}
+      X1 = Mat1.partialPivLu ().solve (X);
+      X2 = Mat2.partialPivLu ().solve (X);
+      X2 = Mat2.partialPivLu ().solve (X2);
+      error = (X2 - X1).norm ();
+      
+      if (error < epsilon)
+	{ // then accept new values
+	  X = X2; time = time + Dt1;
+	  // Update time step estimate
+	  Dt1 = Dt1 * sqrt (epsilon / error);
+	  Dt2 = 0.5 * Dt1;
+	  cout << "time = " << time << "  dt = " << Dt1 << endl;
+	}
+      else
+	{ // reduce time step by 1/5
+	  Dt1 = 0.2 * Dt1; Dt2 = 0.2 * Dt2;
+	  Mat1 = Id - Dt1 * Mat;
+	  Mat2 = Id - Dt2 * Mat;
+
+	  cout << "     reducing time step to " << Dt1 << endl;
+	}
+    }
+  return X;
+}
 /**************************************************************/
 
 
@@ -236,28 +337,15 @@ int main ()
   VectorXd X = VectorXd::Zero (N_max);
   X (Number (G1 + 5 * PapI, Min, Max, N)) = 1.0;
 
-  
+
+
+
+
   // Integrate
   double time = 0.0;
-  double Dt = 0.001;
   double t_final = 10.0;
-  MatrixXd Mat;
-  Mat = MatrixXd::Identity (N_max, N_max)
-    - Dt * Propensity_Matrix (Rxns, N_Rxns, Min, Max, N);
-  Mat = Mat.inverse ();
-  while (time < t_final)
-    {
-      if (Dt > t_final - time)
-	{
-	  Dt   = t_final - time;
-  	  Mat = MatrixXd::Identity (N_max, N_max)
-  	    - Dt * Propensity_Matrix (Rxns, N_Rxns, Min, Max, N);
-  	  Mat = Mat.inverse ();
-	  // X    = Forward_Euler (X, Dt, Rxns, N_Rxns, Min, Max, N);
-	}
-      X    = Reverse_Euler (X, Mat);
-      time = time +Dt;
-    }
+  X = Adaptive_FE (X, time, t_final, Rxns, N_Rxns, Min, Max, N);
+  // X = Adaptive_BE (X, time, t_final, Rxns, N_Rxns, Min, Max, N);
 
   
   // Output Results to file

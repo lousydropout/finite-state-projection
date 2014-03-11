@@ -7,7 +7,7 @@ using namespace Eigen;
 using namespace std;
 
 
-
+const double epsilon = 1.0e-3;
 /** Not Problem Specific.  For Problem Statement Scroll further down.
                   Various Definitions, Functions, and Procedures  **/
 typedef struct
@@ -171,14 +171,14 @@ VectorXd Adaptive_FE (VectorXd X,
       X2 = Forward_Euler (X2, Dt2, Mat);
 
       error = (X2 - X1).norm ();
-      if (error < 1.0e-4)
+      if (error < epsilon)
 	{
-	  cout << "time = " << time << endl;
 	  X = X2;
 	  time = time + Dt1;
 	  // Update time step based
-	  Dt1 = Dt1 * sqrt (1.0e-4 / error);
+	  Dt1 = Dt1 * sqrt (epsilon / error);
 	  Dt2 = 0.5 * Dt1;
+	  cout << "time = " << time << " new dt = " << Dt1 << endl;
 	}
       else
 	{
@@ -227,13 +227,13 @@ VectorXd Adaptive_BE (VectorXd X,
       X2 = Mat2.partialPivLu ().solve (X2);
       error = (X2 - X1).norm ();
       
-      if (error < 1.0e-4)
+      if (error < epsilon)
 	{ // then accept new values
 	  X = X2; time = time + Dt1;
-	  cout << "time = " << time << "  dt = " << Dt1 << endl;
 	  // Update time step estimate
-	  Dt1 = Dt1 * sqrt (1.0e-4 / error);
+	  Dt1 = Dt1 * sqrt (epsilon / error);
 	  Dt2 = 0.5 * Dt1;
+	  cout << "time = " << time << "  dt = " << Dt1 << endl;
 	}
       else
 	{ // reduce time step by 1/5
@@ -337,7 +337,8 @@ int main ()
   double time = 0.0;
   double t_final = 10.0;
 
-  X = Adaptive_BE (X, time, t_final, Rxns, N_Rxns, Min, Max, N);
+  X = Adaptive_FE (X, time, t_final, Rxns, N_Rxns, Min, Max, N);
+  // X = Adaptive_BE (X, time, t_final, Rxns, N_Rxns, Min, Max, N);
 
   
   // Output Results to file
