@@ -209,8 +209,8 @@ VectorXd Adaptive_BE (VectorXd X,
   double Dt2 = 0.5 * Dt1;
   double error;
 
-  Mat1 = Id - Dt1 * Mat; Mat1 = Mat1.inverse ();
-  Mat2 = Id - Dt2 * Mat; Mat2 = Mat2.inverse ();
+  Mat1 = Id - Dt1 * Mat;
+  Mat2 = Id - Dt2 * Mat;
   
   while (time < t_final)
     {
@@ -219,12 +219,12 @@ VectorXd Adaptive_BE (VectorXd X,
   	  Dt1 = t_final - time;
 	  Dt2 = 0.5 * Dt1;
 	  cout << "     Reducing time step to " << Dt1 << endl;
-	  Mat1 = Id - Dt1 * Mat; Mat1 = Mat1.inverse ();
-	  Mat2 = Id - Dt2 * Mat; Mat2 = Mat2.inverse ();
+	  Mat1 = Id - Dt1 * Mat;
+	  Mat2 = Id - Dt2 * Mat;
   	}
-
-      X1 = Mat1 * X;
-      X2 = Mat2 * (Mat2 * X);
+      X1 = Mat1.partialPivLu ().solve (X);
+      X2 = Mat2.partialPivLu ().solve (X);
+      X2 = Mat2.partialPivLu ().solve (X2);
       error = (X2 - X1).norm ();
       
       if (error < 1.0e-4)
@@ -238,8 +238,8 @@ VectorXd Adaptive_BE (VectorXd X,
       else
 	{ // reduce time step by 1/5
 	  Dt1 = 0.2 * Dt1; Dt2 = 0.2 * Dt2;
-	  Mat1 = Id - Dt1 * Mat; Mat1 = Mat1.inverse ();
-	  Mat2 = Id - Dt2 * Mat; Mat2 = Mat2.inverse ();
+	  Mat1 = Id - Dt1 * Mat;
+	  Mat2 = Id - Dt2 * Mat;
 
 	  cout << "     reducing time step to " << Dt1 << endl;
 	}
