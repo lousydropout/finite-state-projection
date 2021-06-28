@@ -1,6 +1,6 @@
 # Finite State Projection Method
 
-## Summary
+## Introduction
 
 Many systems of chemical reactions, that are of interest to scientists and engineers, assumes the the number of molecules involved is large. This allows them to assume that said number of molecules can be represented as a continous variable, a real number, which then allows the system of chemical reactions to be represented as a system of ordinary differential equations (ODEs). This large number assumption, however, is not always valid. In these situations, the deterministic system of ODEs is replaced with a stochastic version.
 
