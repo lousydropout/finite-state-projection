@@ -1,4 +1,4 @@
-# Finite State Projection Method
+# A Runge-Kutta Method Approach to the Finite State Projection Method
 
 ## Introduction
 
